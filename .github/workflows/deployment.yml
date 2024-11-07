@@ -67,7 +67,7 @@ jobs:
           submodules: true
 
   sanitize:
-    name: Sanitize
+    name: Sanitize 1
     runs-on: ubuntu-24.04
     env:
       USE_NINJA: "1"
@@ -86,7 +86,7 @@ jobs:
           submodules: true
 
   build-wasm2c-memchecked:
-    name: wasm2c-memchecked
+    name: Sanitize 1/2 (merge)
     runs-on: ubuntu-latest
     env:
       USE_NINJA: "1"
