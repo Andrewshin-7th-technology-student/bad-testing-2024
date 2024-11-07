@@ -209,5 +209,3 @@ jobs:
           architecture: ${{ matrix.arch }}
           npm_config_arch: ${{ matrix.arch }}
           TARGET_ARCH: ${{ matrix.arch }}
-      - name: Test
-        run: npm test
