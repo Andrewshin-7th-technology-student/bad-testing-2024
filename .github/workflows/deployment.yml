@@ -175,12 +175,12 @@ jobs:
         run: sudo ln -s /usr/bin/distcc /opt/bin/distcc_symlinks/${{matrix.arch}}-linux-gnu-gcc
 
   ci:
-    name: CI
+    name: Sanitize 2
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        node: [20, 18, 16]
+        node: [20, 18, 16, 15, 24]
         os: [windows-2019, macos-11, ubuntu-22.04]
         arch: [x64]
         include:
