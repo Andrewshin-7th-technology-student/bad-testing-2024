@@ -250,25 +250,16 @@ jobs:
       group: windows-test-${{ matrix.nr }}-${{ github.ref }}
       cancel-in-progress: ${{ needs.ci-config.outputs.skip_concurrent == 'yes' }}
     steps:
-      - name: extract tracked files and build artifacts
-        shell: bash
-        run: tar xf artifacts.tar.gz && tar xf tracked.tar.gz
-      - name: setup SDK
-        shell: powershell
-        run: echo 91
-      - name: test
-        shell: powershell
-        run: git-sdk/usr/bin/bash.exe -l -c 'ci/run-test-slice.sh ${{ matrix.nr }} 10'
-      - name: print test failures
-        if: failure() && env.FAILED_TEST_ARTIFACTS != ''
-        shell: bash
-        run: ci/print-test-failures.sh
-      - name: Upload failed tests' directories
-        if: failure() && env.FAILED_TEST_ARTIFACTS != ''
-        uses: actions/upload-artifact@v4
+      - name: Use Node.js
+        uses: actions/setup-node@v4
         with:
-          name: failed-tests-windows-${{ matrix.nr }}
-          path: ${{ env.FAILED_TEST_ARTIFACTS }}
+          node-version: ${{ matrix.node }}
+          architecture: ${{ matrix.arch }} 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - uses: actions/checkout@v4
+
 
   vs-build:
     name: win+VS build
