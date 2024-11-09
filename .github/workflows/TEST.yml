@@ -201,17 +201,6 @@ jobs:
       cancel-in-progress: ${{ needs.ci-config.outputs.skip_concurrent == 'yes' }}
     steps:
       - uses: actions/checkout@v4
-      - name: setup SDK
-        shell: powershell
-        run: ci/install-sdk.ps1
-      - name: build
-        shell: powershell
-        env:
-          HOME: ${{ runner.workspace }}
-          NO_PERL: 1
-        run: git-sdk/usr/bin/bash.exe -l -c 'ci/make-test-artifacts.sh artifacts'
-      - name: zip up tracked files
-        run: git archive -o artifacts/tracked.tar.gz HEAD
       - name: upload tracked files and build artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -228,12 +217,6 @@ jobs:
       cancel-in-progress: ${{ needs.ci-config.outputs.skip_concurrent == 'yes' }}
     steps:
       - uses: actions/checkout@v4
-      - name: setup SDK
-        run: ci/install-sdk.sh
-      - name: build
-        run: ci/make-test-artifacts.sh artifacts
-      - name: zip up tracked files
-        run: git archive -o artifacts/tracked.tar.gz HEAD
       - name: upload tracked files and build artifacts
         uses: actions/upload-artifact@v4
         with:
