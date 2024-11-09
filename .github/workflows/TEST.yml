@@ -261,7 +261,7 @@ jobs:
 
   vs-build:
     name: win+VS build
-    needs: ci-config
+    needs: [windows-build, linux-build]
     if: github.event.repository.owner.login == 'git-for-windows' && needs.ci-config.outputs.enabled == 'yes'
     env:
       NO_PERL: 1
@@ -322,31 +322,19 @@ jobs:
     concurrency:
       group: vs-test-${{ matrix.nr }}-${{ github.ref }}
       cancel-in-progress: ${{ needs.ci-config.outputs.skip_concurrent == 'yes' }}
-    steps:
-      - uses: git-for-windows/setup-git-for-windows-sdk@v1
-      - name: download tracked files and build artifacts
-        uses: actions/download-artifact@v4
+    steps:      
+      - uses: actions/checkout@v3
         with:
-          name: vs-artifacts
-          path: ${{ github.workspace }}
-      - name: extract tracked files and build artifacts
-        shell: bash
-        run: tar xf artifacts.tar.gz && tar xf tracked.tar.gz
-      - name: test
-        shell: bash
-        env:
-          NO_SVN_TESTS: 1
-        run: . /etc/profile && ci/run-test-slice.sh ${{ matrix.nr }} 10
-      - name: print test failures
-        if: failure() && env.FAILED_TEST_ARTIFACTS != ''
-        shell: bash
-        run: ci/print-test-failures.sh
-      - name: Upload failed tests' directories
-        if: failure() && env.FAILED_TEST_ARTIFACTS != ''
-        uses: actions/upload-artifact@v4
+          submodules: recursive
+      - name: Set up Windows platform using python - checkout
+        uses: actions/setup-python@v4
         with:
-          name: failed-tests-windows-vs-${{ matrix.nr }}
-          path: ${{ env.FAILED_TEST_ARTIFACTS }}
+          python-version: "3.11"
+      - name: Use Node.js - same as linux connect
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          architecture: ${{ matrix.arch }} 
 
   regular:
     name: ${{ matrix.vector.jobname }} (${{ matrix.vector.pool }})
