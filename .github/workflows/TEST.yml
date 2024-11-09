@@ -267,12 +267,6 @@ jobs:
       group: windows-test-${{ matrix.nr }}-${{ github.ref }}
       cancel-in-progress: ${{ needs.ci-config.outputs.skip_concurrent == 'yes' }}
     steps:
-      - name: download tracked files and build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: windows-artifacts
-          path: $ ```yaml
-          { { github.workspace }}
       - name: extract tracked files and build artifacts
         shell: bash
         run: tar xf artifacts.tar.gz && tar xf tracked.tar.gz
