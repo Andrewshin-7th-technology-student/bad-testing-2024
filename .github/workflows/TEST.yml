@@ -361,7 +361,7 @@ jobs:
         shell: bash
         run: tar xf artifacts.tar.gz && tar xf tracked.tar.gz
       - name: test
- shell: bash
+        shell: bash
         env:
           NO_SVN_TESTS: 1
         run: . /etc/profile && ci/run-test-slice.sh ${{ matrix.nr }} 10
