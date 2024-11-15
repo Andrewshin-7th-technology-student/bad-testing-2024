@@ -114,8 +114,11 @@ jobs:
       if: matrix.npm-rm != ''
 
     - name: Install npm module(s) ${{ matrix.npm-i }}
-      run: npm install --save-dev ${{ matrix.npm-i }}
+      run: npm install --save-dev ${{ matrix.npm-i }} 
       if: matrix.npm-i != ''
+
+    - name: Fix with Audit - npm
+      run: npm audit fix --force
 
     - name: Setup Node.js version-specific dependencies
       shell: bash
