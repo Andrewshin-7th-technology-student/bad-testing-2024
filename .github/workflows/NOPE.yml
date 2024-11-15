@@ -824,7 +824,8 @@ jobs:
             mkdir ./coverage
             mv "./Node.js 7.x" "./coverage/Node.js 7.x"
           fi
-  ci-build-nodejs-0-8:
+  
+  ci-build-nodejs-0--8:
     name: Node.js 0.8
     needs: ci-config
     if: needs.ci-config.outputs.enabled == 'yes'
