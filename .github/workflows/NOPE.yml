@@ -614,7 +614,8 @@ jobs:
     if: needs.ci-config.outputs.enabled == 'yes'
     env:
       jobname: Ci-Configuration build-io.js 1.x
-    runs-on: ubuntu-latest steps:
+    runs-on: ubuntu-latest 
+    steps:
       - uses: actions/checkout@v2
       - name: Remove non-test npm modules
         run: npm rm --silent --save-dev benchmark beautify-benchmark
