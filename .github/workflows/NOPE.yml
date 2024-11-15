@@ -2,7 +2,7 @@ name: Combined CI Workflow
 
 on:
   create:
-    tags:
+    tags: 
   push:
     branches:
       - main
@@ -48,7 +48,7 @@ jobs:
       enabled: ${{ steps.check-ref.outputs.enabled }}${{ steps.skip-if-redundant.outputs.enabled }}
       skip_concurrent: ${{ steps.check-ref.outputs.skip_concurrent }}
     steps:
-      - name: try to clone ci-config branch
+      - name: Try to clone ci-config branch
         run: |
           git -c protocol.version=2 clone \
             --no-tags \
@@ -61,28 +61,26 @@ jobs:
             config-repo &&
           cd config-repo &&
           git checkout HEAD -- ci/config || true
+
       - id: check-ref
-        name: check whether CI is enabled for ref
+        name: Check whether CI is enabled for ref
         run: |
           enabled=yes
-          if test -x config-repo/ci/config/allow-ref
-          then
+          if test -x config-repo/ci/config/allow-ref; then
             echo "::warning::ci/config/allow-ref is deprecated; use CI_BRANCHES instead"
-            if ! config-repo/ci/config/allow-ref '${{ github.ref }}'
-            then
+            if ! config-repo/ci/config/allow-ref '${{ github.ref }}'; then
               enabled=no
             fi
           fi
 
           skip_concurrent=yes
-          if test -x config-repo/ci/config/skip-concurrent &&
-             ! config-repo/ci/config/skip-concurrent '${{ github.ref }}'
-          then
+          if test -x config-repo/ci/config/skip-concurrent && ! config-repo/ci/config/skip-concurrent '${{ github.ref }}'; then
             skip_concurrent=no
           fi
-          echo "enabled=$enabled" >>$GITHUB_OUTPUT
-          echo "skip_concurrent=$skip_concurrent" >>$GITHUB_OUTPUT
-      - name: skip if the commit or tree was already tested
+          echo "enabled=$enabled" >> $GITHUB_OUTPUT
+          echo "skip_concurrent=$skip_concurrent" >> $GITHUB_OUTPUT
+
+      - name: Skip if the commit or tree was already tested
         id: skip-if-redundant
         uses: actions/github-script@v7
         if: steps.check-ref.outputs.enabled == 'yes'
@@ -139,8 +137,7 @@ jobs:
         run: mkdir -p out
 
   emscripten:
-    name: Checkout -- Build
-    runs-on: ubuntu-latest
+    name: Checkout -- Build runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
@@ -192,7 +189,7 @@ jobs:
         run: sudo sysctl -w vm.mmap_rnd_bits=28
 
   windows-build:
-    name: windows build
+    name: Windows Build
     needs: ci-config
     if: needs.ci-config.outputs.enabled == 'yes'
     runs-on: windows-latest
@@ -201,14 +198,14 @@ jobs:
       cancel-in-progress: ${{ needs.ci-config.outputs.skip_concurrent == 'yes' }}
     steps:
       - uses: actions/checkout@v4
-      - name: upload tracked files and build artifacts
+      - name: Upload tracked files and build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: windows-artifacts
           path: artifacts
 
   linux-build:
-    name: linux Arch build
+    name: Linux Arch Build
     needs: ci-config
     if: needs.ci-config.outputs.enabled == 'yes'
     runs-on: ubuntu-latest
@@ -217,7 +214,7 @@ jobs:
       cancel-in-progress: ${{ needs.ci-config.outputs.skip_concurrent == 'yes' }}
     steps:
       - uses: actions/checkout@v4
-      - name: upload tracked files and build artifacts
+      - name: Upload tracked files and build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: tracked-files
@@ -237,13 +234,13 @@ jobs:
         run: npm test
 
   windows-test:
-    name: win test
+    name: Windows Test
     runs-on: windows-latest
     needs: [ci-config, windows-build]
     strategy:
       fail-fast: false
       matrix:
-        nr: [0, 1,  2, 3, 4, 5, 6, 7, 8, 9]
+        nr: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     concurrency:
       group: windows-test-${{ matrix.nr }}-${{ github.ref }}
       cancel-in-progress: ${{ needs.ci-config.outputs.skip_concurrent == 'yes' }}
@@ -259,7 +256,7 @@ jobs:
       - uses: actions/checkout@v4
 
   vs-build:
-    name: win+VS build
+    name: Win+VS Build
     needs: [windows-build, linux-build]
     if: github.event.repository.owner.login == 'git-for-windows' && needs.ci-config.outputs.enabled == 'yes'
     env:
@@ -268,33 +265,32 @@ jobs:
     runs-on: windows-latest
     concurrency:
       group: vs-build-${{ github.ref }}
-      cancel-in-progress: ${{ needs.ci-config.outputs.skip_concurrent == 'yes' }}
-    steps:
-      - uses: actions/ checkout@v4
+      cancel-in-progress: ${{ needs.ci-config.outputs.skip_concurrent == 'yes' steps:
+      - uses: actions/checkout@v4
       - uses: git-for-windows/setup-git-for-windows-sdk@v1
-      - name: initialize vcpkg
+      - name: Initialize vcpkg
         uses: actions/checkout@v4
         with:
           repository: 'microsoft/vcpkg'
           path: 'compat/vcbuild/vcpkg'
-      - name: download vcpkg artifacts
+      - name: Download vcpkg artifacts
         uses: git-for-windows/get-azure-pipelines-artifact@v0
         with:
           repository: git/git
           definitionId: 9
-      - name: add msbuild to PATH
+      - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v2
-      - name: copy dlls to root
+      - name: Copy DLLs to root
         shell: cmd
         run: compat\vcbuild\vcpkg_copy_dlls.bat release
-      - name: generate Visual Studio solution
+      - name: Generate Visual Studio solution
         shell: bash
         run: |
           cmake `pwd`/contrib/buildsystems/ -DCMAKE_PREFIX_PATH=`pwd`/compat/vcbuild/vcpkg/installed/x64-windows \
           -DNO_GETTEXT=YesPlease -DPERL_TESTS=OFF -DPYTHON_TESTS=OFF -DCURL_NO_CURL_CMAKE=ON
       - name: MSBuild
         run: msbuild git.sln -property:Configuration=Release -property:Platform=x64 -maxCpuCount:4 -property:PlatformToolset=v142
-      - name: bundle artifact tar
+      - name: Bundle artifact tar
         shell: bash
         env:
           MSVC: 1
@@ -302,16 +298,16 @@ jobs:
         run: |
           mkdir -p artifacts &&
           eval "$(make -n artifacts-tar INCLUDE_DLLS_IN_ARTIFACTS=YesPlease ARTIFACTS_DIRECTORY=artifacts NO_GETTEXT=YesPlease 2>&1 | grep ^tar)"
-      - name: zip up tracked files
+      - name: Zip up tracked files
         run: git archive -o artifacts/tracked.tar.gz HEAD
-      - name: upload tracked files and build artifacts
+      - name: Upload tracked files and build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: vs-artifacts
           path: artifacts
 
   vs-test:
-    name: win+VS test
+    name: Win+VS Test
     runs-on: windows-latest
     needs: [ci-config, vs-build]
     strategy:
@@ -325,11 +321,11 @@ jobs:
       - uses: actions/checkout@v3
         with:
           submodules: recursive
-      - name: Set up Windows platform using python - checkout
+      - name: Set up Windows platform using Python - checkout
         uses: actions/setup-python@v4
         with:
           python-version: "3.11"
-      - name: Use Node.js - same as linux connect
+      - name: Use Node.js - same as Linux connect
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
@@ -375,7 +371,8 @@ jobs:
           - jobname: linux-leaks
             cc: gcc
             pool: ubuntu-latest
-          - jobname: linux-reftable-leaks
+          - jobname ```yaml
+            linux-reftable-leaks
             cc: gcc
             pool: ubuntu-latest
           - jobname: linux-asan-ubsan
@@ -389,7 +386,7 @@ jobs:
     runs-on: ${{ matrix.vector.pool }}
     steps:
       - uses: actions/checkout@v4
-      - name: print test failures
+      - name: Print test failures
         if: failure() && env.FAILED_TEST_ARTIFACTS != ''
         run: ci/print-test-failures.sh
       - name: Upload failed tests' directories
@@ -400,7 +397,7 @@ jobs:
           path: ${{ env.FAILED_TEST_ARTIFACTS }}
 
   fuzz-smoke-test:
-    name: fuzz smoke test
+    name: Fuzz Smoke Test
     needs: ci-config
     if: needs.ci-config.outputs.enabled == 'yes'
     env:
@@ -435,11 +432,11 @@ jobs:
     runs-on: ubuntu-latest
     container: ${{ matrix.vector.image }}
     steps:
-      - name: prepare libc6 for actions
+      - name: Prepare libc6 for actions
         if: matrix.vector.jobname == 'linux32'
         run: apt -q update && apt -q -y install libc6-amd64 lib64stdc++6
       - uses: actions/checkout@v4
-      - name: print test failures
+      - name: Print test failures
         if: failure() && env.FAILED_TEST_ARTIFACTS != ''
         run: ci/print-test-failures.sh
       - name: Upload failed tests' directories
@@ -482,7 +479,7 @@ jobs:
       - uses: actions/checkout@v4
 
   documentation:
-    name: documentation
+    name: Documentation
     needs: ci-config
     if: needs.ci-config.outputs.enabled == 'yes'
     concurrency:
@@ -490,21 +487,24 @@ jobs:
       cancel-in-progress: ${{ needs.ci-config.outputs.skip_concurrent == 'yes' }}
     env:
       jobname: Documentation
-    runs-on: ubuntu-latest
+    runs-on: ubuntu ```yaml
+-latest
     steps:
-      - uses: actions/ checkout@v4
-      - run: echo oh
+      - uses: actions/checkout@v4
+      - run: echo "Generating documentation..."
 
-ci:
-  name: CI
-  on:
-    pull_request: 
-    push: 
+  ci:
+    name: CI
+    on:
+      pull_request: {}
+      push: {}
 
-  jobs:
-    test:
-      runs-on: ubuntu-latest
-      
+    jobs:
+      test:
+        runs-on: ubuntu-latest
+        strategy:
+          matrix:
+            name:
               - Node.js 0.8
               - Node.js 0.10
               - Node.js 0.12
@@ -525,7 +525,7 @@ ci:
               - Node.js 15.x
               - Node.js 16.x
 
-      include:
+            include:
               - name: Node.js 0.8
                 node-version: "0.8"
                 npm-i: mocha@2.5.3
@@ -603,7 +603,7 @@ ci:
                 node-version: "16"
                 npm-i: mocha@latest
 
-    steps:
+        steps:
           - uses: actions/checkout@v2
 
           - name: Remove non-test npm modules
@@ -613,7 +613,7 @@ ci:
             run: npm rm --silent --save-dev ${{ matrix.npm-rm }}
             if: matrix.npm-rm != ''
 
-          - name: Install npm module(s) ${{ matrix .npm-i }}
+          - name: Install npm module(s) ${{ matrix.npm-i }}
             run: npm install --save-dev ${{ matrix.npm-i }} 
             if: matrix.npm-i != ''
 
