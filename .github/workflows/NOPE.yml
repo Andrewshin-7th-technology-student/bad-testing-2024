@@ -120,9 +120,6 @@ jobs:
     - name: Fix with Audit - npm
       run: npm audit fix --force
 
-    - name: Install Node.js dependencies
-      run: npm install
-
     - name: List environment
       id: list_env
       shell: bash
