@@ -394,3 +394,21 @@ jobs:
       - name: Build React App
         run: |
           yarn build
+          
+  build-self-hosted:
+    name: Build Self Hosted Image
+    if: ${{ !github.event.pull_request.head.repo.fork && github.repository_owner == 'Andrewshin-7th-technology-student' }}
+    uses: codecov/gha-workflows/.github/workflows/self-hosted.yml@v1.2.14
+    with:
+      repo: ${{ vars.CODECOV_IMAGE_V2 || 'codecov/self-hosted-frontend' }}
+      cache_requirements: false
+
+  self-hosted:
+    name: Push Self Hosted Image
+    needs: [install, build-self-hosted, test-vitest]
+    if: ${{ github.event_name == 'push' && github.event.ref == 'refs/heads/main' && github.repository_owner == 'Andrewshin-7th-technology-student' }}
+    uses: codecov/gha-workflows/.github/workflows/self-hosted.yml@v1.2.14
+    with:
+      push_rolling: true
+      repo: ${{ vars.CODECOV_IMAGE_V2 || 'codecov/self-hosted-frontend' }}
+      cache_requirements: false
