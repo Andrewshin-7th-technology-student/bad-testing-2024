@@ -488,8 +488,7 @@ jobs:
       cancel-in-progress: ${{ needs.ci-config.outputs.skip_concurrent == 'yes' }}
     env:
       jobname: Documentation
-    runs-on: ubuntu ```yaml
--latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - run: echo "Generating documentation..."
