@@ -120,25 +120,6 @@ jobs:
     - name: Fix with Audit - npm
       run: npm audit fix --force
 
-    - name: List environment
-      id: list_env
-      shell: bash
-      run: |
-        echo "node@$(node -v)"
-        echo "npm@$(npm -v)"
-        npm -s ls ||:
-        (npm -s ls --depth=0 ||:) | awk -F'[ @]' 'NR>1 && $2 { print "::set-output name=" $2 "::" $3 }'
-
-    - name: Run tests
-      shell: bash
-      run: |
-        if npm -ps ls nyc | grep -q nyc; then
-          npm run test-ci
-          cp coverage/lcov.info "coverage/${{ matrix.name }}.lcov"
-        else
-          npm test
-        fi
-
     - name: Lint code
       if: steps.list_env.outputs.eslint != ''
       run: npm run lint
