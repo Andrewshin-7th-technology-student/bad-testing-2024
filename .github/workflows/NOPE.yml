@@ -138,7 +138,7 @@ jobs:
           mv "./${{ matrix.name }}" "./coverage/${{ matrix.name }}"
         fi
         
-Cov:
+Coverage-cod:
     environment: 'Development'
     steps:
       - uses: actions/checkout@v3
@@ -158,7 +158,7 @@ Cov:
           python-version: '3.x'
       - uses: actions/checkout@v4
 
-  ci-config:
+ci-config:
     name: Configure linux arch 
     if: vars.CI_BRANCHES == '' || contains(vars.CI_BRANCHES, github.ref_name)
     runs-on: ubuntu-latest
@@ -240,7 +240,7 @@ Cov:
               core.warning(e);
             }
 
-  build:
+build:
     name: Build
     runs-on: ${{ matrix.os }}
     strategy:
@@ -256,7 +256,7 @@ Cov:
       - name: Create Output Directory
         run: mkdir -p out
 
-  emscripten:
+emscripten:
     name: Checkout -- Build
     runs-on: ubuntu-latest
     steps:
@@ -264,7 +264,7 @@ Cov:
         with:
           submodules: true
 
-  wasi:
+wasi:
     name: Approve sanitize build
     runs-on: ubuntu-latest
     steps:
@@ -272,7 +272,7 @@ Cov:
         with:
           submodules: true
 
-  sanitize:
+sanitize:
     name: Sanitize 1
     runs-on: ubuntu-24.04
     env:
@@ -291,7 +291,7 @@ Cov:
         with:
           submodules: true
 
-  build-wasm2c-memchecked:
+build-wasm2c-memchecked:
     name: Sanitize 1/2 (merge)
     runs-on: ubuntu-latest
     env:
@@ -309,7 +309,7 @@ Cov:
       - name: Workaround for ASLR+ASAN Compatibility
         run: sudo sysctl -w vm.mmap_rnd_bits=28
 
-  windows-build:
+windows-build:
     name: windows build
     needs: ci-config
     if: needs.ci-config.outputs.enabled == 'yes'
@@ -325,7 +325,7 @@ Cov:
           name: windows-artifacts
           path: artifacts
 
-  linux-build:
+linux-build:
     name: linux Arch build
     needs: ci-config
     if: needs.ci-config.outputs.enabled == 'yes'
@@ -341,7 +341,7 @@ Cov:
           name: tracked-files
           path: artifacts/tracked.tar.gz
 
-  test:
+test:
     name: Run Tests
     needs: [windows-build, linux-build]
     runs-on: ubuntu-latest
@@ -354,7 +354,7 @@ Cov:
       - name: Run tests
         run: npm test
 
-  windows-test:
+windows-test:
     name: win test
     runs-on: windows-latest
     needs: [ci-config, windows-build]
@@ -377,7 +377,7 @@ Cov:
       - uses: actions/checkout@v4
 
 
-  vs-build:
+vs-build:
     name: win+VS build
     needs: [windows-build, linux-build]
     if: github.event.repository.owner.login == 'git-for-windows' && needs.ci-config.outputs.enabled == 'yes'
@@ -429,7 +429,7 @@ Cov:
           name: vs-artifacts
           path: artifacts
 
-  vs-test:
+vs-test:
     name: win+VS test
     runs-on: windows-latest
     needs: [ci-config, vs-build]
@@ -454,7 +454,7 @@ Cov:
           node-version: ${{ matrix.node }}
           architecture: ${{ matrix.arch }} 
 
-  regular:
+regular:
     name: ${{ matrix.vector.jobname }} (${{ matrix.vector.pool }})
     needs: ci-config
     if: needs.ci-config.outputs.enabled == 'yes'
@@ -518,7 +518,7 @@ Cov:
           name: failed-tests-${{ matrix.vector.jobname }}
           path: ${{ env.FAILED_TEST_ARTIFACTS }}
 
-  fuzz-smoke-test:
+fuzz-smoke-test:
     name: fuzz smoke test
     needs: ci-config
     if: needs.ci-config.outputs.enabled == 'yes'
@@ -528,7 +528,7 @@ Cov:
     steps:
       - uses: actions/checkout@v4
 
-  dockerized:
+dockerized:
     name: ${{ matrix.vector.jobname }} (${{ matrix.vector.image }})
     needs: ci-config
     if: needs.ci-config.outputs.enabled == 'yes'
@@ -568,7 +568,7 @@ Cov:
           name: failed-tests-${{ matrix.vector.jobname }}
           path: ${{ env.FAILED_TEST_ARTIFACTS }}
 
-  static-analysis:
+static-analysis:
     needs: ci-config
     if: needs.ci-config.outputs.enabled == 'yes'
     env:
@@ -580,7 +580,7 @@ Cov:
     steps:
       - uses: actions/checkout@v4
 
-  sparse:
+sparse:
     needs: ci-config
     if: needs.ci-config.outputs.enabled == 'yes'
     env:
@@ -600,7 +600,7 @@ Cov:
         run: sudo dpkg -i sparse-20.04/sparse_*.deb
       - uses: actions/checkout@v4
 
-  documentation:
+documentation:
     name: documentation
     needs: ci-config
     if: needs.ci-config.outputs.enabled == 'yes'
