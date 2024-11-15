@@ -497,9 +497,6 @@ jobs:
     name: Ci-build
     needs: ci-config
     if: needs.ci-config.outputs.enabled == 'yes'
-    concurrency:
-      group: documentation-${{ github.ref }}
-      cancel-in-progress: ${{ needs.ci-config.outputs.skip_concurrent == 'yes' }}
     env:
       jobname: Ci-Configuration build-Node.js
     runs-on: ubuntu-latest
