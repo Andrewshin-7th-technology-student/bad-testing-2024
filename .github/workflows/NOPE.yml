@@ -478,20 +478,6 @@ jobs:
       - name: Install the current `sparse` package
         run: sudo dpkg -i sparse-20.04/sparse_*.deb
       - uses: actions/checkout@v4
-
-  documentation:
-    name: Documentation
-    needs: ci-config
-    if: needs.ci-config.outputs.enabled == 'yes'
-    concurrency:
-      group: documentation-${{ github.ref }}
-      cancel-in-progress: ${{ needs.ci-config.outputs.skip_concurrent == 'yes' }}
-    env:
-      jobname: Documentation
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: echo "Generating documentation..."
       
   ci-build:
     name: Ci-build
