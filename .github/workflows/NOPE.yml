@@ -503,8 +503,8 @@ jobs:
 
     jobs:
       test:
-        runs-on: ubuntu-latest
-        strategy:
+      runs-on: ubuntu-latest
+      strategy:
           matrix:
             name:
               - Node.js 0.8
