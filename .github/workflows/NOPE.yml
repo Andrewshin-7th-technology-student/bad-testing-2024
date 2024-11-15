@@ -505,7 +505,7 @@ ci:
     test:
       runs-on: ubuntu-latest
       strategy:
-        matrix:
+         matrix:
           name:
               - Node.js 0.8
               - Node.js 0.10
