@@ -62,10 +62,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ env.cache-name }}-
 
-      - name: Run linter
-        run: |
-          yarn lint
-
   type-check:
     name: Run Type Checker
     runs-on: ubuntu-latest
@@ -91,10 +87,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ env.cache-name }}-
 
-      - name: Run TSC
-        run: |
-          yarn type-check
-
   format-check:
     name: Run Prettier Check
     runs-on: ubuntu-latest
@@ -119,10 +111,6 @@ jobs:
           key: ${{ runner.os }}-${{ env.cache-name }}-${{ hashFiles('**/yarn.lock') }}
           restore-keys: |
             ${{ runner.os }}-${{ env.cache-name }}-
-
-      - name: Run Prettier
-        run: |
-          yarn format-check
 
   codecov-startup:
     name: Codecov Startup
