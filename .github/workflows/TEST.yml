@@ -1,414 +1,448 @@
-name: Gazebo CI
+name: 'main'
+run-name: ${{ github.event_name == 'workflow_dispatch' && github.ref_name || '' }}
+
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
-      - staging
   pull_request:
-  merge_group:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  group: ${{ github.repository }}-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  GHA_CUSTOM_LINE_PREFIX: "▌"
+
 jobs:
-  install:
-    name: Install deps
-    runs-on: ubuntu-latest
+  emit-workflow-info:
+    name: Emit Workflow Info
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    runs-on: [self-hosted, Linux, X64, gcp-custom-runners]
+    container: 'bitnami/git:2.40.1-debian-11-r4'
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v3
         with:
-          node-version: 20
+          submodules: false
+          fetch-depth: 1
 
-      - name: Cache node_modules
-        id: cache-node-modules
-        uses: actions/cache@v4
-        env:
-          cache-name: cache-gazebo-node-modules
-        with:
-          path: |
-            node_modules
-          key: ${{ runner.os }}-${{ env.cache-name }}-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ env.cache-name }}-
+  style-check:
+    name: Style check
+    runs-on: [self-hosted, Linux, X64, gcp-custom-runners]
+    container: bitnami/git:2.40.1-debian-11-r4
 
-  lint:
-    name: Run Lint
-    runs-on: ubuntu-latest
-    needs: install
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v3
         with:
-          node-version: 20
+          fetch-depth: 1
 
-      - name: Cache node_modules
-        id: cache-node-modules
-        uses: actions/cache@v4
-        env:
-          cache-name: cache-gazebo-node-modules
-        with:
-          path: |
-            node_modules
-          key: ${{ runner.os }}-${{ env.cache-name }}-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ env.cache-name }}-
-
-  type-check:
-    name: Run Type Checker
-    runs-on: ubuntu-latest
-    needs: install
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Cache node_modules
-        id: cache-node-modules
-        uses: actions/cache@v4
-        env:
-          cache-name: cache-gazebo-node-modules
-        with:
-          path: |
-            node_modules
-          key: ${{ runner.os }}-${{ env.cache-name }}-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ env.cache-name }}-
-
-  format-check:
-    name: Run Prettier Check
-    runs-on: ubuntu-latest
-    needs: install
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Cache node_modules
-        id: cache-node-modules
-        uses: actions/cache@v4
-        env:
-          cache-name: cache-gazebo-node-modules
-        with:
-          path: |
-            node_modules
-          key: ${{ runner.os }}-${{ env.cache-name }}-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ env.cache-name }}-
-
-  codecov-startup:
-    name: Codecov Startup
-    needs: install
-    uses: codecov/gha-workflows/.github/workflows/codecov-startup.yml@v1.2.14
-    secrets: inherit
-
-  runner-indexes-vitest:
-    runs-on: ubuntu-latest
-    name: Generate runner indexes Vitest
-    needs: install
-    env:
-      TEST_SPLIT_NUMBER: 80
-    outputs:
-      json: ${{ steps.generate-index-list.outputs.json }}
-      test_list_array: ${{ steps.generate-index-list.outputs.test_list_array }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Generate test index list
-        id: generate-index-list
+      - name: Install dependencies
         run: |
-          shopt -s globstar
-          TEST_LIST=$(ls src/**/*.test.js src/**/*.test.jsx src/**/*.test.ts src/**/*.test.tsx | jq -R -s -c 'split("\n")[:-1]')
-          TEST_LENGTH=$(echo $TEST_LIST | jq length)
-          MAX_INDEX=$((($TEST_LENGTH/${{ env.TEST_SPLIT_NUMBER }})))
-          MAX_INDEX=$(($MAX_INDEX < 0 ? 0 : $TEST_LENGTH % ${{ env.TEST_SPLIT_NUMBER }} == 0 ? $MAX_INDEX - 1 : $MAX_INDEX))
-          INDEX_LIST=$(seq 0 ${MAX_INDEX})
-          INDEX_JSON=$(jq --null-input --compact-output '. |= [inputs]' <<< ${INDEX_LIST})
-          echo json=${INDEX_JSON} >> $GITHUB_OUTPUT
-          echo test_list_array=$(echo ${TEST_LIST} | jq -c '[_nwise(${{ env.TEST_SPLIT_NUMBER }})]') >> $GITHUB_OUTPUT
-
-  test-vitest:
-    name: 'Test Runner #${{ matrix.runner-index }} - Vitest'
-    needs: [install, codecov-startup, runner-indexes-vitest]
-    runs-on: ubuntu-latest
+          apt-get update -q
+          apt-get install -y git clang-format python3 jq
+      - name: Sources format check
+        run: |
+          ./.github/scripts/format_sources.sh
+          if ! git diff --exit-code; then
+            echo
+            echo "Format locally using: ./.github/scripts/format_sources.sh"
+            echo
+            false
+          fi
+      - name: Sort check
+        run: |
+          ./.github/scripts/sort_passlists.sh
+          if ! git diff --exit-code; then
+            echo
+            echo "Sort locally using: ./.github/scripts/sort_passlists.sh"
+            echo
+            false
+          fi
+  build-binaries:
     strategy:
       matrix:
-        runner-index: ${{ fromjson(needs.runner-indexes-vitest.outputs.json) }}
+        include:
+          - name: 'Build Synlig Release'
+            artifact-name: 'binaries-release'
+            apt-extra-deps: 'gcc g++'
+            cc: 'gcc'
+            cxx: 'g++'
+            build-binaries-args: 'install install@surelog PREFIX=out'
+            submodules: 'third_party/yosys third_party/surelog'
+          - name: 'Build Plugin'
+            artifact-name: 'binaries-plugin'
+            cc: 'gcc'
+            cxx: 'g++'
+            apt-extra-deps: 'gcc g++'
+            build-binaries-args: 'install-plugin install@surelog PREFIX=out'
+            submodules: 'third_party/yosys third_party/surelog'
+          - name: 'Build Synlig (ASAN)'
+            artifact-name: 'binaries-asan'
+            cc: 'clang-15'
+            cxx: 'clang++-15'
+            apt-extra-deps: 'clang-15'
+            build-binaries-args: 'install@surelog install@asan PREFIX=out'
+            submodules: 'third_party/yosys third_party/surelog'
+          - name: 'Build Package'
+            artifact-name: 'binaries-package'
+            apt-extra-deps: 'gcc g++'
+            cc: 'gcc'
+            cxx: 'g++'
+            build-binaries-args: 'install PREFIX=out'
+            submodules: 'third_party/yosys third_party/surelog'
+          - name: 'Build PySynlig'
+            artifact-name: 'binaries-pysynlig'
+            apt-extra-deps: 'gcc g++'
+            cc: 'gcc'
+            cxx: 'g++'
+            build-binaries-args: 'install@surelog install@pysynlig PREFIX=out'
+            submodules: 'third_party/yosys third_party/surelog third_party/pybind11'
+    name: ${{ matrix.name }}
+    runs-on: [self-hosted, Linux, X64, gcp-custom-runners]
+    container: debian:bookworm
+    env:
+      CC: ${{ matrix.cc }}
+      CXX: ${{ matrix.cxx }}
+      BUILD_BINARIES_ARGS: ${{ matrix.build-binaries-args }}
+      CCACHE_DIR: "${{ github.workspace }}/.cache/"
+      DEBIAN_FRONTEND: noninteractive
+      GHA_MACHINE_TYPE: "n2-highmem-8"
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v3
         with:
-          fetch-depth: 2
+          submodules: false
+          fetch-depth: 1
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: Set up common configuration
+        run: |
+          ./.github/scripts/set-up-common-debian-configuration.sh
+          ./.github/scripts/set-up-common-git-configuration.sh
+      - name: Install dependencies
+        run: |
+          apt-get update -q
+          apt-get install -y \
+              ant \
+              bison \
+              build-essential \
+              ccache \
+              cmake \
+              default-jre \
+              flex \
+              git \
+              google-perftools \
+              libffi-dev \
+              libfl-dev \
+              libgoogle-perftools-dev \
+              libreadline-dev \
+              pkg-config \
+              python3 \
+              python3-dev \
+              python3-pip \
+              python3-orderedmultidict \
+              swig \
+              tcl-dev \
+              tclsh \
+              uuid \
+              uuid-dev \
+              wget \
+              ${{ matrix.apt-extra-deps }} \
+              ;
+      - name: Checkout submodules
+        run: |
+          git submodule sync
+          git submodule update --depth 1 --init --recursive --checkout \
+              ${{ matrix.submodules }} \
+              ;
+      - name: Setup cache
+        uses: actions/cache@v2
         with:
-          node-version: 20
+          path: ${{ env.CCACHE_DIR }}
+          key: cache_${{ matrix.artifact-name }}_${{ github.run_id }}
+          restore-keys: cache_${{ matrix.artifact-name }}_
 
-      - name: Cache node_modules
-        id: cache-node-modules
-        uses: actions/cache@v4
-        env:
-          cache-name: cache-gazebo-node-modules
+      - name: Build binaries
+        run: |
+          export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
+          make -j $(nproc) ${BUILD_BINARIES_ARGS}
+          # By default actions/upload-artifact@v4 do not preserve file permissions
+          # tar directory to workaround this issue
+          # See https://github.com/actions/upload-artifact/issues/38
+          tar -cvf ${{ matrix.artifact-name }}.tar out
+      - name: Upload binaries
+        uses: actions/upload-artifact@v4
         with:
+          name: ${{ matrix.artifact-name }}
           path: |
-            node_modules
-          key: ${{ runner.os }}-${{ env.cache-name }}-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ env.cache-name }}-
-
-      - name: Run tests
-        run: |
-          TESTS=$(echo $TEST_LIST | jq -cr 'join(" ")')
-          yarn test:ci --minWorkers=1 --maxWorkers=2 $TESTS
-        env:
-          ENABLE_TEST_REPORTER: true
-          TEST_LIST: ${{ tojson(fromjson(needs.runner-indexes-vitest.outputs.test_list_array)[matrix.runner-index]) }}
-
-      - name: Upload test results to Codecov
-        uses: codecov/test-results-action@v1
-        if: ${{ !cancelled() && !github.event.pull_request.head.repo.fork && github.repository_owner == 'codecov'}}
+            ${{ matrix.artifact-name }}.tar
+      - name: Upload load graphs
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
         with:
-          token: ${{ secrets.CODECOV_ORG_TOKEN }}
-          url: ${{ secrets.CODECOV_URL }}
-
-      - name: Upload test results to Codecov staging
-        uses: codecov/test-results-action@v1
-        if: ${{ !cancelled() && !github.event.pull_request.head.repo.fork && github.repository_owner == 'codecov'}}
-        with:
-          token: ${{ secrets.CODECOV_ORG_TOKEN_STAGING }}
-          url: ${{ secrets.CODECOV_STAGING_URL }}
-
-      - name: Upload test results to Codecov QA
-        uses: codecov/test-results-action@v1
-        if: ${{ !cancelled() && !github.event.pull_request.head.repo.fork && github.repository_owner == 'codecov'}}
-        with:
-          token: ${{ secrets.CODECOV_QA_TOKEN }}
-          url: ${{ secrets.CODECOV_QA_URL }}
-
-      - name: Upload test results to Codecov public QA
-        uses: codecov/test-results-action@v1
-        if: ${{ !cancelled() && !github.event.pull_request.head.repo.fork && github.repository_owner == 'codecov'}}
-        with:
-          token: ${{ secrets.CODECOV_PUBLIC_QA_TOKEN }}
-          url: ${{ secrets.CODECOV_PUBLIC_QA_URL }}
-
-      - name: Install CLI
-        if: ${{ !github.event.pull_request.head.repo.fork && github.repository_owner == 'codecov' }}
-        run: |
-          make test_env.install_cli
-
-      ## Don't upload on forks for now.
-      - name: Upload coverage to Production
-        if: ${{ !github.event.pull_request.head.repo.fork && github.repository_owner == 'codecov' }}
-        run: |
-          codecovcli -u ${{ secrets.CODECOV_URL }} do-upload -t ${{ secrets.CODECOV_ORG_TOKEN }} --fail-on-error --name "VITEST-${{ matrix.runner-index }}"
-
-      - name: Upload coverage to Staging
-        if: ${{ !github.event.pull_request.head.repo.fork && github.repository_owner == 'codecov' }}
-        run: |
-          codecovcli -u ${{ secrets.CODECOV_STAGING_URL }} do-upload -t ${{ secrets.CODECOV_ORG_TOKEN_STAGING }} --fail-on-error
-
-      - name: Upload coverage to QA
-        if: ${{ !github.event.pull_request.head.repo.fork && github.repository_owner == 'codecov' }}
-        run: |
-          codecovcli -u ${{ secrets.CODECOV_QA_URL }} do-upload -t ${{ secrets.CODECOV_QA_TOKEN }} --fail-on-error
-
-      - name: Upload coverage to Public QA
-        if: ${{ !github.event.pull_request.head.repo.fork && github.repository_owner == 'codecov' }}
-        run: |
-          codecovcli -u ${{ secrets.CODECOV_PUBLIC_QA_URL }} do-upload -t ${{ secrets.CODECOV_PUBLIC_QA_TOKEN }} --fail-on-error
-
-  upload-bundle-stats-to-prod:
-    name: Upload Bundle Stats - Production
-    runs-on: ubuntu-latest
-    needs: install
-    if: ${{ !github.event.pull_request.head.repo.fork && github.repository_owner == 'codecov' }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Cache node_modules
-        id: cache-node-modules
-        uses: actions/cache@v4
-        env:
-          cache-name: cache-gazebo-node-modules
-        with:
+          name: plots_${{ matrix.artifact-name }}
           path: |
-            node_modules
-          key: ${{ runner.os }}-${{ env.cache-name }}-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ env.cache-name }}-
+            **/plot_*.svg
+  build-tools:
+    name: Build tools
+    runs-on: [self-hosted, Linux, X64, gcp-custom-runners]
+    container: debian:bookworm
+    env:
+      DEBIAN_FRONTEND: noninteractive
+      GHA_MACHINE_TYPE: "n2-standard-4"
 
-      - name: Build and upload stats
-        run: |
-          yarn build
-        env:
-          CODECOV_API_URL: ${{ secrets.CODECOV_API_URL }}
-          CODECOV_ORG_TOKEN: ${{ secrets.CODECOV_ORG_TOKEN }}
-          CODECOV_BUNDLE_NAME: 'gazebo-production'
-          UPLOAD_CODECOV_BUNDLE_STATS: true
-          # The head sha aligns with how the sha used in prod builds
-          GAZEBO_SHA: ${{ github.event.pull_request.head.sha }}
-
-  upload-bundle-stats-to-staging:
-    name: Upload Bundle Stats - Staging
-    runs-on: ubuntu-latest
-    needs: install
-    if: ${{ !github.event.pull_request.head.repo.fork && github.repository_owner == 'codecov' }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v3
         with:
-          fetch-depth: 2
+          submodules: false
+          fetch-depth: 1
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: Set up common Debian configuration
+        run: |
+          ./.github/scripts/set-up-common-debian-configuration.sh
+          ./.github/scripts/set-up-common-git-configuration.sh
+      - name: Install dependencies
+        run: |
+          apt-get update -q
+          apt-get install -y \
+              ant \
+              bison \
+              build-essential \
+              ccache \
+              cmake \
+              default-jre \
+              flex \
+              git \
+              gcc \
+              g++ \
+              google-perftools \
+              libffi-dev \
+              libfl-dev \
+              libgoogle-perftools-dev \
+              libreadline-dev \
+              pkg-config \
+              python3 \
+              python3-dev \
+              python3-pip \
+              python3-orderedmultidict \
+              swig \
+              tcl-dev \
+              tclsh \
+              uuid \
+              uuid-dev \
+              wget \
+              ;
+      - name: Checkout submodules
+        run: |
+          git submodule sync
+          git submodule update --depth 1 --init --recursive --checkout \
+              third_party/sv2v \
+              third_party/yosys \
+              ;
+      - name: Build sv2v
+        run: |
+          export PATH=$PWD/install/bin:/usr/local/bin:${PATH}
+          wget -qO- https://get.haskellstack.org/ | sh -s - -f -d /usr/local/bin
+          make install@sv2v -j $(nproc) PREFIX=out
+      - name: Build tools
+        run: |
+          make install@yosys-tools -j $(nproc) PREFIX=out
+      - name: Pack tools
+        run: |
+          tar -cvf tools.tar out
+      - name: Upload binaries
+        uses: actions/upload-artifact@v4
         with:
-          node-version: 20
-
-      - name: Cache node_modules
-        id: cache-node-modules
-        uses: actions/cache@v4
-        env:
-          cache-name: cache-gazebo-node-modules
-        with:
+          name: tools
           path: |
-            node_modules
-          key: ${{ runner.os }}-${{ env.cache-name }}-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ env.cache-name }}-
-
-      - name: Build and upload stats
-        run: |
-          yarn build
-        env:
-          CODECOV_API_URL: ${{ secrets.CODECOV_STAGING_API_URL }}
-          CODECOV_ORG_TOKEN: ${{ secrets.CODECOV_ORG_TOKEN_STAGING }}
-          CODECOV_BUNDLE_NAME: 'gazebo-staging'
-          UPLOAD_CODECOV_BUNDLE_STATS: true
-          # The head sha aligns with how the sha used in prod builds
-          GAZEBO_SHA: ${{ github.event.pull_request.head.sha }}
-
-  storybook:
-    name: Run storybook
-    runs-on: ubuntu-latest
-    needs: install
-    if: ${{ !github.event.pull_request.head.repo.fork && !startsWith(github.ref, 'refs/heads/dependabot') && github.repository_owner == 'codecov' }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+            tools.tar
+      - name: Upload load graphs
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
         with:
-          fetch-depth: 0
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Cache node_modules
-        id: cache-node-modules
-        uses: actions/cache@v4
-        env:
-          cache-name: cache-gazebo-node-modules
-        with:
+          name: plots_build_tools
           path: |
-            node_modules
-          key: ${{ runner.os }}-${{ env.cache-name }}-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ env.cache-name }}-
+            **/plot_*.svg
+  tests-parsing:
+    name: Parsing Tests
+    uses: ./.github/workflows/parsing-tests.yml
+    secrets:
+      SSH_DEPLOY_KEY: ${{ secrets.SSH_DEPLOY_KEY }}
+    permissions:
+      pull-requests: write
+    needs: build-binaries
 
-      - name: Deploy to Chromatic
-        run: |
-          yarn chromatic
-        env:
-          CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+  tests-formal-verification:
+    name: Formal Verification Tests
+    uses: ./.github/workflows/formal-verification.yml
+    needs:
+      - build-binaries
+      - build-tools
 
-  fossa:
-    name: Run Fossa
-    runs-on: ubuntu-latest
-    needs: install
-    if: ${{ !github.event.pull_request.head.repo.fork && github.repository_owner == 'codecov' }}
+  tests-bsg-micro-designs-diff:
+    name: Diff generated BSG Micro Designs tests
+    uses: ./.github/workflows/bsg-test-diff.yml
+    needs:
+      - build-binaries
+
+  tests-large-designs:
+    name: Large Designs Tests
+    uses: ./.github/workflows/large-designs.yml
+    needs: build-binaries
+
+  release:
+    permissions:
+      contents: write
+    name: Release Package
+    needs:
+      - build-binaries
+      - tests-parsing
+      - tests-formal-verification
+      - tests-large-designs
+    runs-on: ubuntu-22.04
+    if: ${{github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')}}
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v2
         with:
-          node-version: 20
+         # Download complete repository + tags
+         fetch-depth: 0
 
-      - name: Run Fossa
-        uses: fossas/fossa-action@v1.3.3
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
         with:
-          api-key: ${{secrets.FOSSA_API_KEY}}
+          name: binaries-package
 
-  build:
-    name: Build App
-    runs-on: ubuntu-latest
-    needs: [install, test-vitest]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Cache node_modules
-        id: cache-node-modules
-        uses: actions/cache@v4
-        env:
-          cache-name: cache-gazebo-node-modules
-        with:
-          path: |
-            node_modules
-          key: ${{ runner.os }}-${{ env.cache-name }}-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ env.cache-name }}-
-
-      - name: Build React App
+      # See https://github.com/actions/upload-artifact/issues/38
+      - name: Extract
         run: |
-          yarn build
-          
-  build-self-hosted:
-    name: Build Self Hosted Image
-    if: ${{ !github.event.pull_request.head.repo.fork && github.repository_owner == 'Andrewshin-7th-technology-student' }}
-    uses: codecov/gha-workflows/.github/workflows/self-hosted.yml@v1.2.14
-    with:
-      repo: ${{ vars.CODECOV_IMAGE_V2 || 'codecov/self-hosted-frontend' }}
-      cache_requirements: false
+          tar -xf binaries-package.tar
+      - name: Prepare tarball
+        run: |
+          mkdir synlig
+          cp out/bin/synlig synlig/
+          cp -r out/share/synlig synlig/share
+          tar -zcvf release.tar.gz synlig
+      - name: Name tarball and apply TAG
+        run: |
+          GIT_VERSION=${GIT_VERSION:-$(git rev-parse --short "$GITHUB_SHA")}
+          DATE=$(git show -s --date=short --format=%cd)
+          FULL_TARBALL=synlig-$GIT_VERSION-$DATE.tar.gz
+          # Create a tag of form 2021-12-06-ad2466e
+          TAG="${TAG:-$(git show -s --date=short --format=%cd-%h)}"
+          git tag "$TAG" || true
+          echo "TAG=$TAG" >> $GITHUB_ENV
+          mv release.tar.gz $FULL_TARBALL
+          tar -tvf $FULL_TARBALL
+      - name: Get PR data
+        uses: 8BitJonny/gh-get-current-pr@2.2.0
+        with:
+          sha: ${{ github.event.pull_request.head.sha }}
+        id: release_pr
+      - name: Deploy release
+        env:
+          RELEASE_NAME: >
+            ${{ steps.release_pr.outputs.pr_found == 'true'
+                &&
+                  format('{0}: #{1}: {2}',
+                         env.TAG,
+                         steps.release_pr.outputs.number,
+                         steps.release_pr.outputs.pr_title)
+                ||
+                  env.TAG }}
+          RELEASE_BODY: >
+            ${{ steps.release_pr.outputs.pr_found == 'true'
+                &&
+                  steps.release_pr.outputs.pr_body
+                ||
+                  '' }}
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: synlig-*.tar.gz
+          tag: ${{ env.TAG }}
+          release_name: ${{ env.RELEASE_NAME }}
+          body: ${{ env.RELEASE_BODY }}
+          overwrite: true
+          file_glob: true
 
-  self-hosted:
-    name: Push Self Hosted Image
-    needs: [install, build-self-hosted, test-vitest]
-    if: ${{ github.event_name == 'push' && github.event.ref == 'refs/heads/main' && github.repository_owner == 'Andrewshin-7th-technology-student' }}
-    uses: codecov/gha-workflows/.github/workflows/self-hosted.yml@v1.2.14
-    with:
-      push_rolling: true
-      repo: ${{ vars.CODECOV_IMAGE_V2 || 'codecov/self-hosted-frontend' }}
-      cache_requirements: false
+  verify-README:
+    name: Verify README Correctness (Installation From Sources)
+    runs-on: [self-hosted, Linux, X64, gcp-custom-runners]
+    container: debian:bookworm
+    env:
+      DEBIAN_FRONTEND: noninteractive
+      PIPX_BIN_DIR: /usr/local/bin
+
+    steps:
+      - name: Prepare Repository
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+
+      - name: Install Prerequisites
+        run: |
+          apt update -qq
+          apt install -y --no-install-recommends pipx git wget
+          pipx install git+https://github.com/antmicro/tuttest#egg=tuttest
+      - name: Install Dependencies
+        run: |
+          set -o pipefail
+          tuttest README.md install-dependencies | bash -eo pipefail -
+      - name: Test Synlig Installation
+        run: |
+          set -o pipefail
+          tuttest README.md make-install | bash -eo pipefail -
+      - name: Test Tools Installation
+        run: |
+          set -o pipefail
+          tuttest README.md get-haskell | bash -eo pipefail -
+          tuttest README.md install-tools | bash -eo pipefail -
+      - name: Test counter.sv Synthesis
+        run: |
+          set -o pipefail
+          tuttest README.md counter.sv > counter.sv
+          tuttest README.md synthesis-example  | grep ">" | cut -d ">" -f 2 | synlig
+      - name: Test Parsing Multiple Files
+        run: |
+          set -o pipefail
+          tuttest README.md example-multiple-files | synlig
+      - name: Test Testing Scripts Commands
+        run: |
+          set -o pipefail
+          tuttest README.md formal-verification-help | bash -eo pipefail -
+          tuttest README.md large-designs-help | bash -eo pipefail -
+          tuttest README.md parsing-tests-help | bash -eo pipefail -
+  test-package:
+    name: Verify README Correctness (Download And Run Release)
+    needs: release
+    runs-on: [self-hosted, Linux, X64, gcp-custom-runners]
+    container: debian:bookworm
+    env:
+      DEBIAN_FRONTEND: noninteractive
+      PIPX_BIN_DIR: /usr/local/bin
+
+    steps:
+      - name: Prepare Repository
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+
+      - name: Install Prerequisites
+        run: |
+          apt update -qq
+          apt install -y --no-install-recommends pipx git wget
+          pipx install git+https://github.com/antmicro/tuttest#egg=tuttest
+      - name: Install Dependencies
+        run: |
+          set -o pipefail
+          tuttest README.md install-dependencies-package | bash -eo pipefail -
+      - name: Download Release, Set PATH and Test counter.sv Synthesis
+        run: |
+          set -o pipefail
+          tuttest README.md download-release | bash -eo pipefail -
+          eval $(tuttest README.md path-setup)
+          tuttest README.md counter.sv > counter.sv
+          tuttest README.md synthesis-example  | grep ">" | cut -d ">" -f 2 | synlig
