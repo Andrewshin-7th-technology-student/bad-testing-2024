@@ -815,7 +815,8 @@ jobs:
         run: npm fund
       - name: Lint code
         if: steps.list_env.outputs.eslint != ''
-        run: npm run lint - name: Collect code coverage
+        run: npm run lint 
+      - name: Collect code coverage
         if: steps.list_env.outputs.nyc != ''
         run: |
           if [[ -d ./coverage ]]; then
@@ -823,8 +824,6 @@ jobs:
             mkdir ./coverage
             mv "./Node.js 7.x" "./coverage/Node.js 7.x"
           fi
-``` ```yaml
-jobs:
   ci-build-nodejs-0-8:
     name: Node.js 0.8
     needs: ci-config
