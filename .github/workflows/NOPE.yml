@@ -373,8 +373,7 @@ jobs:
           - jobname: linux-leaks
             cc: gcc
             pool: ubuntu-latest
-          - jobname ```yaml
-            linux-reftable-leaks
+          - jobname: yaml
             cc: gcc
             pool: ubuntu-latest
           - jobname: linux-asan-ubsan
