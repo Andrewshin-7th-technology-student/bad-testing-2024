@@ -117,11 +117,8 @@ jobs:
       run: npm install --save-dev ${{ matrix.npm-i }} 
       if: matrix.npm-i != ''
 
-    - name: Fix with Audit - npm
-      run: npm audit fix --force
-
-    - name: Fix audit (2)
-      run: npm audit fix --force
+    - name: npm funding details
+      run: npm fund
   
     - name: Lint code
       if: steps.list_env.outputs.eslint != ''
