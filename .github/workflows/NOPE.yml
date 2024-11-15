@@ -525,7 +525,7 @@ ci:
               - Node.js 15.x
               - Node.js 16.x
 
-            include:
+      include:
               - name: Node.js 0.8
                 node-version: "0.8"
                 npm-i: mocha@2.5.3
@@ -603,7 +603,7 @@ ci:
                 node-version: "16"
                 npm-i: mocha@latest
 
-        steps:
+    steps:
           - uses: actions/checkout@v2
 
           - name: Remove non-test npm modules
