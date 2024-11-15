@@ -106,9 +106,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Configure npm
-      run: npm config set shrinkwrap true
-
     - name: Remove non-test npm modules
       run: npm rm --silent --save-dev benchmark beautify-benchmark
 
