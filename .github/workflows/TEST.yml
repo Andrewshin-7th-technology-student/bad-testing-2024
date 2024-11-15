@@ -17,17 +17,6 @@ env:
   GHA_CUSTOM_LINE_PREFIX: "▌"
 
 jobs:
-  emit-workflow-info:
-    name: Emit Workflow Info
-    if: ${{ github.event_name == 'workflow_dispatch' }}
-    runs-on: [self-hosted, Linux, X64, gcp-custom-runners]
-    container: 'bitnami/git:2.40.1-debian-11-r4'
-
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: false
-          fetch-depth: 1
 
   style-check:
     name: Style check
