@@ -267,7 +267,7 @@ jobs:
     concurrency:
       group: vs-build-${{ github.ref }}
       cancel-in-progress: ${{ needs.ci-config.outputs.skip_concurrent == 'yes' 
-      steps:
+    steps:
       - uses: actions/checkout@v4
       - uses: git-for-windows/setup-git-for-windows-sdk@v1
       - name: Initialize vcpkg
