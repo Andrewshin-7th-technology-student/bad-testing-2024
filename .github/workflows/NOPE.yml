@@ -1,144 +1,26 @@
-name: ci
+name: Combined CI Workflow
 
 on:
-- pull_request
-- push
+  create:
+    tags:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  DEVELOPER: 1
+
+concurrency:
+  group: ${{ github.sha }}
 
 jobs:
-  test:
+  lint:
+    name: Connect to Linux Server
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        name:
-        - Node.js 0.8
-        - Node.js 0.10
-        - Node.js 0.12
-        - io.js 1.x
-        - io.js 2.x
-        - io.js 3.x
-        - Node.js 4.x
-        - Node.js 5.x
-        - Node.js 6.x
-        - Node.js 7.x
-        - Node.js 8.x
-        - Node.js 9.x
-        - Node.js 10.x
-        - Node.js 11.x
-        - Node.js 12.x
-        - Node.js 13.x
-        - Node.js 14.x
-        - Node.js 15.x
-        - Node.js 16.x
-
-        include:
-        - name: Node.js 0.8
-          node-version: "0.8"
-          npm-i: mocha@2.5.3
-          npm-rm: nyc
-
-        - name: Node.js 0.10
-          node-version: "0.10"
-          npm-i: browserify@15 mocha@3.5.3 nyc@10.3.2
-
-        - name: Node.js 0.12
-          node-version: "0.12"
-          npm-i: browserify@15 mocha@3.5.3 nyc@10.3.2
-
-        - name: io.js 1.x
-          node-version: "1.8"
-          npm-i: browserify@15 mocha@3.5.3 nyc@10.3.2
-
-        - name: io.js 2.x
-          node-version: "2.5"
-          npm-i: browserify@15 mocha@3.5.3 nyc@10.3.2
-
-        - name: io.js 3.x
-          node-version: "3.3"
-          npm-i: browserify@15 mocha@3.5.3 nyc@10.3.2
-
-        - name: Node.js 4.x
-          node-version: "4.9"
-          npm-i: browserify@15 mocha@5.2.0 nyc@11.9.0
-
-        - name: Node.js 5.x
-          node-version: "5.12"
-          npm-i: browserify@15 mocha@5.2.0 nyc@11.9.0
-
-        - name: Node.js 6.x
-          node-version: "6.17"
-          npm-i: browserify@15 mocha@6.2.2 nyc@14.1.1
-
-        - name: Node.js 7.x
-          node-version: "7.10"
-          npm-i: browserify@15 mocha@6.2.2 nyc@14.1.1
-
-        - name: Node.js 8.x
-          node-version: "8.17"
-          npm-i: browserify@15 mocha@7.2.0
-
-        - name: Node.js 9.x
-          node-version: "9.11"
-          npm-i: browserify@15 mocha@7.2.0
-
-        - name: Node.js 10.x
-          node-version: "10.23"
-          npm-i: browserify@15
-
-        - name: Node.js 11.x
-          node-version: "11.15"
-          npm-i: browserify@15
-
-        - name: Node.js 12.x
-          node-version: "12.20"
-          npm-i: browserify@15
-
-        - name: Node.js 13.x
-          node-version: "13.14"
-          npm-i: browserify@15
-
-        - name: Node.js 14.x
-          node-version: "14.15"
-          npm-i: browserify@15
-
-        - name: Node.js 15.x
-          node-version: "15.8"
-          npm-i: browserify@15
-
-        - name: Node.js 16.x
-          node-version: "16"
-          npm-i: mocha@latest
-          
-    steps:
-    - uses: actions/checkout@v2
-
-    - name: Remove non-test npm modules
-      run: npm rm --silent --save-dev benchmark beautify-benchmark
-
-    - name: Remove npm module(s) ${{ matrix.npm-rm }}
-      run: npm rm --silent --save-dev ${{ matrix.npm-rm }}
-      if: matrix.npm-rm != ''
-
-    - name: Install npm module(s) ${{ matrix.npm-i }}
-      run: npm install --save-dev ${{ matrix.npm-i }} 
-      if: matrix.npm-i != ''
-
-    - name: npm funding details
-      run: npm fund
-  
-    - name: Lint code
-      if: steps.list_env.outputs.eslint != ''
-      run: npm run lint
-
-    - name: Collect code coverage
-      if: steps.list_env.outputs.nyc != ''
-      run: |
-        if [[ -d ./coverage ]]; then
-          mv ./coverage "./${{ matrix.name }}"
-          mkdir ./coverage
-          mv "./${{ matrix.name }}" "./coverage/${{ matrix.name }}"
-        fi
-        
-Coverage-cod:
     environment: 'Development'
     steps:
       - uses: actions/checkout@v3
@@ -158,7 +40,7 @@ Coverage-cod:
           python-version: '3.x'
       - uses: actions/checkout@v4
 
-ci-config:
+  ci-config:
     name: Configure linux arch 
     if: vars.CI_BRANCHES == '' || contains(vars.CI_BRANCHES, github.ref_name)
     runs-on: ubuntu-latest
@@ -240,7 +122,7 @@ ci-config:
               core.warning(e);
             }
 
-build:
+  build:
     name: Build
     runs-on: ${{ matrix.os }}
     strategy:
@@ -256,15 +138,14 @@ build:
       - name: Create Output Directory
         run: mkdir -p out
 
-emscripten:
+  emscripten:
     name: Checkout -- Build
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+    steps - uses: actions/checkout@v4
         with:
           submodules: true
 
-wasi:
+  wasi:
     name: Approve sanitize build
     runs-on: ubuntu-latest
     steps:
@@ -272,7 +153,7 @@ wasi:
         with:
           submodules: true
 
-sanitize:
+  sanitize:
     name: Sanitize 1
     runs-on: ubuntu-24.04
     env:
@@ -291,7 +172,7 @@ sanitize:
         with:
           submodules: true
 
-build-wasm2c-memchecked:
+  build-wasm2c-memchecked:
     name: Sanitize 1/2 (merge)
     runs-on: ubuntu-latest
     env:
@@ -309,7 +190,7 @@ build-wasm2c-memchecked:
       - name: Workaround for ASLR+ASAN Compatibility
         run: sudo sysctl -w vm.mmap_rnd_bits=28
 
-windows-build:
+  windows-build:
     name: windows build
     needs: ci-config
     if: needs.ci-config.outputs.enabled == 'yes'
@@ -325,7 +206,7 @@ windows-build:
           name: windows-artifacts
           path: artifacts
 
-linux-build:
+  linux-build:
     name: linux Arch build
     needs: ci-config
     if: needs.ci-config.outputs.enabled == 'yes'
@@ -341,7 +222,7 @@ linux-build:
           name: tracked-files
           path: artifacts/tracked.tar.gz
 
-test:
+  test:
     name: Run Tests
     needs: [windows-build, linux-build]
     runs-on: ubuntu-latest
@@ -354,7 +235,7 @@ test:
       - name: Run tests
         run: npm test
 
-windows-test:
+  windows-test:
     name: win test
     runs-on: windows-latest
     needs: [ci-config, windows-build]
@@ -376,8 +257,7 @@ windows-test:
           python-version: '3.x'
       - uses: actions/checkout@v4
 
-
-vs-build:
+  vs-build:
     name: win+VS build
     needs: [windows-build, linux-build]
     if: github.event.repository.owner.login == 'git-for-windows' && needs.ci-config.outputs.enabled == 'yes'
@@ -389,7 +269,7 @@ vs-build:
       group: vs-build-${{ github.ref }}
       cancel-in-progress: ${{ needs.ci-config.outputs.skip_concurrent == 'yes' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/ checkout@v4
       - uses: git-for-windows/setup-git-for-windows-sdk@v1
       - name: initialize vcpkg
         uses: actions/checkout@v4
@@ -429,7 +309,7 @@ vs-build:
           name: vs-artifacts
           path: artifacts
 
-vs-test:
+  vs-test:
     name: win+VS test
     runs-on: windows-latest
     needs: [ci-config, vs-build]
@@ -454,7 +334,7 @@ vs-test:
           node-version: ${{ matrix.node }}
           architecture: ${{ matrix.arch }} 
 
-regular:
+  regular:
     name: ${{ matrix.vector.jobname }} (${{ matrix.vector.pool }})
     needs: ci-config
     if: needs.ci-config.outputs.enabled == 'yes'
@@ -486,7 +366,7 @@ regular:
             cc: clang
             pool: macos-13
           - jobname: osx-gcc
-            cc: gcc-13
+            cc: gcc
             pool: macos-13
           - jobname: linux-gcc-default
             cc: gcc
@@ -518,7 +398,7 @@ regular:
           name: failed-tests-${{ matrix.vector.jobname }}
           path: ${{ env.FAILED_TEST_ARTIFACTS }}
 
-fuzz-smoke-test:
+  fuzz-smoke-test:
     name: fuzz smoke test
     needs: ci-config
     if: needs.ci-config.outputs.enabled == 'yes'
@@ -528,7 +408,7 @@ fuzz-smoke-test:
     steps:
       - uses: actions/checkout@v4
 
-dockerized:
+  dockerized:
     name: ${{ matrix.vector.jobname }} (${{ matrix.vector.image }})
     needs: ci-config
     if: needs.ci-config.outputs.enabled == 'yes'
@@ -568,7 +448,7 @@ dockerized:
           name: failed-tests-${{ matrix.vector.jobname }}
           path: ${{ env.FAILED_TEST_ARTIFACTS }}
 
-static-analysis:
+  static-analysis:
     needs: ci-config
     if: needs.ci-config.outputs.enabled == 'yes'
     env:
@@ -580,7 +460,7 @@ static-analysis:
     steps:
       - uses: actions/checkout@v4
 
-sparse:
+  sparse:
     needs: ci-config
     if: needs.ci-config.outputs.enabled == 'yes'
     env:
@@ -600,7 +480,7 @@ sparse:
         run: sudo dpkg -i sparse-20.04/sparse_*.deb
       - uses: actions/checkout@v4
 
-documentation:
+  documentation:
     name: documentation
     needs: ci-config
     if: needs.ci-config.outputs.enabled == 'yes'
@@ -611,5 +491,145 @@ documentation:
       jobname: Documentation
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/ checkout@v4
       - run: echo oh
+
+  ci:
+    name: CI
+    on:
+      pull_request:
+      push:
+
+    jobs:
+      test:
+        runs-on: ubuntu-latest
+        strategy:
+          matrix:
+            name:
+              - Node.js 0.8
+              - Node.js 0.10
+              - Node.js 0.12
+              - io.js 1.x
+              - io.js 2.x
+              - io.js 3.x
+              - Node.js 4.x
+              - Node.js 5.x
+              - Node.js 6.x
+              - Node.js 7.x
+              - Node.js 8.x
+              - Node.js 9.x
+              - Node.js 10.x
+              - Node.js 11.x
+              - Node.js 12.x
+              - Node.js 13.x
+              - Node.js 14.x
+              - Node.js 15.x
+              - Node.js 16.x
+
+            include:
+              - name: Node.js 0.8
+                node-version: "0.8"
+                npm-i: mocha@2.5.3
+                npm-rm: nyc
+
+              - name: Node.js 0.10
+                node-version: "0.10"
+                npm-i: browserify@15 mocha@3.5.3 nyc@10.3.2
+
+              - name: Node.js 0.12
+                node-version: "0.12"
+                npm-i: browserify@15 mocha@3.5.3 nyc@10.3.2
+
+              - name: io.js 1.x
+                node-version: "1.8"
+                npm-i: browserify@15 mocha@3.5.3 nyc@10.3.2
+
+              - name: io.js 2.x
+                node-version: "2.5"
+                npm-i: browserify@15 mocha@3.5.3 nyc@10.3.2
+
+              - name: io.js 3.x
+                node-version: "3.3"
+                npm-i: browserify@15 mocha@3.5.3 nyc@10.3.2
+
+              - name: Node.js 4.x
+                node-version: "4.9"
+                npm-i: browserify@15 mocha@5.2.0 nyc@11.9.0
+
+              - name: Node.js 5.x
+                node-version: "5.12"
+                npm-i: browserify@15 mocha@5.2.0 nyc@11.9.0
+
+              - name: Node.js 6.x
+                node-version: "6.17"
+                npm-i: browserify@15 mocha@6.2.2 nyc@14.1.1
+
+              - name: Node.js 7.x
+                node-version: "7.10"
+                npm-i: browserify@15 mocha@6.2.2 nyc@14.1.1
+
+              - name: Node.js 8.x
+                node-version: "8.17"
+                npm-i: browserify@15 mocha@7.2.0
+
+              - name: Node.js 9.x
+                node-version: "9.11"
+                npm-i: browserify@15 mocha@7.2.0
+
+              - name: Node.js 10.x
+                node-version: "10.23"
+                npm-i: browserify@15
+
+              - name: Node.js 11.x
+                node-version: "11.15"
+                npm-i: browserify@15
+
+              - name: Node.js 12.x
+                node-version: "12.20"
+                npm-i: browserify@15
+
+              - name: Node.js 13.x
+                node-version: "13.14"
+                npm-i: browserify@15
+
+              - name: Node.js 14.x
+                node-version: "14.15"
+                npm-i: browserify@15
+
+              - name: Node.js 15.x
+                node-version: "15.8"
+                npm-i: browserify@15
+
+              - name: Node.js 16.x
+                node-version: "16"
+                npm-i: mocha@latest
+
+        steps:
+          - uses: actions/checkout@v2
+
+          - name: Remove non-test npm modules
+            run: npm rm --silent --save-dev benchmark beautify-benchmark
+
+          - name: Remove npm module(s) ${{ matrix.npm-rm }}
+            run: npm rm --silent --save-dev ${{ matrix.npm-rm }}
+            if: matrix.npm-rm != ''
+
+          - name: Install npm module(s) ${{ matrix .npm-i }}
+            run: npm install --save-dev ${{ matrix.npm-i }} 
+            if: matrix.npm-i != ''
+
+          - name: npm funding details
+            run: npm fund
+
+          - name: Lint code
+            if: steps.list_env.outputs.eslint != ''
+            run: npm run lint
+
+          - name: Collect code coverage
+            if: steps.list_env.outputs.nyc != ''
+            run: |
+              if [[ -d ./coverage ]]; then
+                mv ./coverage "./${{ matrix.name }}"
+                mkdir ./coverage
+                mv "./${{ matrix.name }}" "./coverage/${{ matrix.name }}"
+              fi
