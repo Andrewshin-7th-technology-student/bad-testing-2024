@@ -266,7 +266,7 @@ jobs:
     runs-on: windows-latest
     concurrency:
       group: vs-build-${{ github.ref }}
-      cancel-in-progress: ${{ needs.ci-config.outputs.skip_concurrent == 'yes' 
+      cancel-in-progress: ${{ needs.ci-config.outputs.skip_concurrent == 'yes'}} 
     steps:
       - uses: actions/checkout@v4
       - uses: git-for-windows/setup-git-for-windows-sdk@v1
