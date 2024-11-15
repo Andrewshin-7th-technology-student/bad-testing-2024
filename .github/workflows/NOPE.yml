@@ -856,7 +856,7 @@ jobs:
             mv "./Node.js 0.8" "./coverage/Node.js 0.8"
           fi
 
-  ci-build-nodejs-0-10:
+  ci-build-nodejs-0--10:
     name: Node.js 0.10
     needs: ci-config
     if: needs.ci-config.outputs.enabled == 'yes'
@@ -887,7 +887,7 @@ jobs:
             mv "./Node.js 0.10" "./coverage/Node.js 0.10"
           fi
 
-  ci-build-nodejs-0-12:
+  ci-build-nodejs-0--12:
     name: Node.js 0.12
     needs: ci-config
     if: needs.ci-config.outputs.enabled == 'yes'
@@ -917,14 +917,3 @@ jobs:
             mkdir ./coverage
             mv "./Node.js 0.12" "./coverage/Node.js 0.12"
           fi
-
-  ci-build-iojs-1-x:
-    name: io.js 1.x
-    needs: ci-config
-    if: needs.ci-config.outputs.enabled == 'yes'
-    env:
-      jobname: Ci-Configuration build-io.js 1.x
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Remove non-test npm
