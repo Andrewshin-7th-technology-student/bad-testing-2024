@@ -1,42 +1,16 @@
-name: Install NVM and Node.js
+name: Example Workflow
 
-on:
-  push:
-    branches:
-      - main
+on: [push]
 
 jobs:
-  windows-test:
-    name: win test
-    runs-on: windows-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        nr: [1]
-    concurrency:
-      group: windows-test-${{ matrix.nr }}-${{ github.ref }}
-      cancel-in-progress: ${{ needs.ci-config.outputs.skip_concurrent == 'yes' }}
+  build:
+    runs-on: ubuntu-latest
     steps:
-      - name: Use Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node }}
-          architecture: ${{ matrix.arch }} 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.x'
-      - uses: actions/checkout@v4
-      - name: Warn if there are too many Windows jobs running
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Echo a bold message
         run: |
-          # Set a maximum number of concurrent jobs allowed
-          MAX_JOBS=179  # Adjust this number as needed
-
-          # Get the current matrix number
-          CURRENT_JOB_NUMBER=${{ matrix.nr }}
-
-          # Check if the current job number exceeds the maximum allowed
-          if ([ $CURRENT_JOB_NUMBER -gt $MAX_JOBS ]); then
-            echo "Warning: Too many Windows jobs are currently running! Current job number: $CURRENT_JOB_NUMBER"
-          else
-            echo "Current job count is within limits. Current job number: $CURRENT_JOB_NUMBER"
-          fi
+          echo "::group::My Bold Message"
+          echo "**This is a bold message**"
+          echo "::endgroup::"
