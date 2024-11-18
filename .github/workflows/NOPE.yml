@@ -29,12 +29,14 @@ jobs:
       - name: Warn if there are too many Windows jobs running
         run: |
           # Set a maximum number of concurrent jobs allowed
-          MAX_JOBS=10  # Adjust this number as needed
-          CURRENT_JOBS=${{ github.run_id }}  # This is just a placeholder; GitHub doesn't provide a direct way to count running jobs
+          MAX_JOBS=179  # Adjust this number as needed
+
+          # Get the current matrix number
+          CURRENT_JOB_NUMBER=${{ matrix.nr }}
 
           # Check if the current job number exceeds the maximum allowed
-          if [ $CURRENT_JOBS -gt $MAX_JOBS ]; then
-            echo "Warning: Too many Windows jobs are currently running!"
+          if [ $CURRENT_JOB_NUMBER -gt $MAX_JOBS ]; then
+            echo "Warning: Too many Windows jobs are currently running! Current job number: $CURRENT_JOB_NUMBER"
           else
-            echo "Current job count is within limits."
+            echo "Current job count is within limits. Current job number: $CURRENT_JOB_NUMBER"
           fi
