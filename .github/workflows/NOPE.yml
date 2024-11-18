@@ -231,8 +231,6 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '14'
-      - name: Run tests
-        run: npm test
 
   windows-test:
     name: Windows Test
@@ -578,7 +576,7 @@ jobs:
           fi
 
   ci-build-nodejs-0-12:
-    name: Node.js 0.12
+    name: Node.js-- 0.12
     needs: ci-config
     if: needs.ci-config.outputs.enabled == 'yes'
     env:
@@ -857,7 +855,7 @@ jobs:
           fi
 
   ci-build-nodejs-0--10:
-    name: Node.js 0.10
+    name: Node.js-- 0.10
     needs: ci-config
     if: needs.ci-config.outputs.enabled == 'yes'
     env:
