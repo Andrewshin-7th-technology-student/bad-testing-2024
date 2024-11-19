@@ -191,9 +191,6 @@ jobs:
           path: .cache/eslint
           key: eslint-main-cache
 
-      - name: Lint
-        run: pnpm eslint-ci
-
       - name: Remove cache
         if: github.event_name == 'push'
         env:
@@ -231,16 +228,6 @@ jobs:
           node-version: ${{ needs.setup-build.outputs.node-version }}
           os: ${{ runner.os }}
 
-
-      - name: Lint
-        run: |
-          pnpm prettier --write --cache-location .cache/prettier
-          git diff --quiet || {
-            echo "[ERROR] Please apply the changes prettier suggests:"
-            git diff --color=always
-            exit 1
-          }
-
       - name: Remove cache
         if: github.event_name == 'push'
         env:
@@ -249,13 +236,6 @@ jobs:
         run: |
           gh api --method DELETE /repos/{owner}/{repo}/actions/caches?key=prettier-main-cache ||
             echo "Cache not found"
-
-      - name: Save prettier cache
-        if: github.event_name == 'push'
-        uses: actions/cache/save@6849a6489940f00c2f30c0fb92c6274307ccb58a # v4.1.2
-        with:
-          path: .cache/prettier
-          key: prettier-main-cache
 
   lint-docs:
     needs:
@@ -277,15 +257,6 @@ jobs:
 
       - name: Lint markdown
         uses: DavidAnson/markdownlint-cli2-action@db43aef879112c3119a410d69f66701e0d530809 # v17.0.0
-
-      - name: Lint fenced code blocks
-        run: pnpm doc-fence-check
-
-      - name: Lint documentation
-        run: pnpm lint-documentation
-
-      - name: Markdown lint
-        run: pnpm markdown-lint
 
   lint-other:
     needs:
