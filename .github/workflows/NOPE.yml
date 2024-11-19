@@ -496,7 +496,7 @@ jobs:
           needs.coverage-threshold.result == 'skipped'
         run: exit 1
 
-  build:
+  buildx:
     needs:
       - setup-build
     runs-on: ubuntu-latest
