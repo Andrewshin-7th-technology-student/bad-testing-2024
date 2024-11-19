@@ -256,8 +256,6 @@ jobs:
 
   schedule:
     runs-on: ubuntu-latest
-    schedule:
-      - cron: '0 0 * * 0' # Every Sunday at midnight
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
