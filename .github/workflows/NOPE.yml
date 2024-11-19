@@ -101,17 +101,9 @@ jobs:
           sparse-checkout: ${{ env.SPARSE_CHECKOUT }}
           show-progress: false
 
-      - name: Calculate matrix for `node_modules` prefetch
-        uses: ./.github/actions/calculate-prefetch-matrix
-        id: os-matrix-prefetch
-        with:
-          repo: ${{ github.event.repository.full_name }}
-          token: ${{ github.token }}
-          node-version: ${{ env.NODE_VERSION }}
-
       - name: Prefetch test modules for `ubuntu-latest`
         id: setup-node
-        uses: ./.github/actions/setup-node
+        uses: ./.github/workflows
         with:
           node-version: ${{ env.NODE_VERSION }}
           os: ${{ runner.os }}
