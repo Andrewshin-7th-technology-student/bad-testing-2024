@@ -124,13 +124,6 @@ jobs:
           sparse-checkout: ${{ env.SPARSE_CHECKOUT }}
           show-progress: false
 
-      - name: Prefetch build modules for `ubuntu-latest`
-        uses: ./.github/actions/setup-node
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          os: ${{ runner.os }}
-          save-cache: true
-
   prefetch:
     needs: [setup]
 
@@ -182,18 +175,18 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@v4
         with:
           show-progress: false
 
       - name: Setup Node.js
-        uses: ./.github/actions/setup-node
+        uses: actions/checkout@v4
         with:
           node-version: ${{ needs.setup-build.outputs.node-version }}
           os: ${{ runner.os }}
 
       - name: Restore eslint cache
-        uses: actions/cache/restore@6849a6489940f00c2f30c0fb92c6274307ccb58a # v4.1.2
+        uses: actions/checkout@v4
         with:
           path: .cache/eslint
           key: eslint-main-cache
@@ -233,16 +226,11 @@ jobs:
           show-progress: false
 
       - name: Setup Node.js
-        uses: ./.github/actions/setup-node
+        uses: actions/checkout@v4
         with:
           node-version: ${{ needs.setup-build.outputs.node-version }}
           os: ${{ runner.os }}
 
-      - name: Restore prettier cache
-        uses: actions/cache/restore@6849a6489940f00c2f30c0fb92c6274307ccb58a # v4.1.2
-        with:
-          path: .cache/prettier
-          key: prettier-main-cache
 
       - name: Lint
         run: |
