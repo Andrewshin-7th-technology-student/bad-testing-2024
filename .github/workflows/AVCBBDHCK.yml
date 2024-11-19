@@ -23,9 +23,6 @@ jobs:
         with:
           node-version: '16' # Use the desired Node.js version
 
-      - name: Install Dependencies
-        run: pnpm install --frozen-lockfile
-
       - name: Cache Node Modules
         uses: actions/cache@v2
         with:
