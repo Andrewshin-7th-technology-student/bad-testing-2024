@@ -69,10 +69,10 @@ jobs:
         with:
           filter: blob:none # we don't need all blobs
           sparse-checkout: ${{ env.SPARSE_CHECKOUT }}
-          show-progress: false
+          show-progress: true
 
       - name: Calculate matrix for `node_modules` prefetch
-        uses: ./.github/actions/calculate-prefetch-matrix
+        uses: actions/checkout@v4
         id: os-matrix-prefetch
         with:
           repo: ${{ github.event.repository.full_name }}
@@ -81,7 +81,7 @@ jobs:
 
       - name: Prefetch test modules for `ubuntu-latest`
         id: setup-node
-        uses: ./.github/actions/setup-node
+        uses: actions/checkout@v2
         with:
           node-version: ${{ env.NODE_VERSION }}
           os: ${{ runner.os }}
@@ -107,10 +107,10 @@ jobs:
         with:
           filter: blob:none # we don't need all blobs
           sparse-checkout: ${{ env.SPARSE_CHECKOUT }}
-          show-progress: false
+          show-progress: true
 
       - name: Prefetch build modules for `ubuntu-latest`
-        uses: ./.github/actions/setup-node
+        uses: actions/chekout@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           os: ${{ runner.os }}
@@ -141,7 +141,7 @@ jobs:
     steps:
       - name: Checkout code
         if: needs.setup.outputs.os-matrix-is-full && runner.os != 'Linux'
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@v4
         with:
           filter: blob:none # we don't need all blobs
           sparse-checkout: ${{ env.SPARSE_CHECKOUT }}
@@ -166,7 +166,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@v4
         with:
           show-progress: false
 
@@ -177,9 +177,9 @@ jobs:
           os: ${{ runner.os }}
 
       - name: Restore eslint cache
-        uses: actions/cache/restore@6849a6489940f00c2f30c0fb92c6274307ccb58a # v4.1.2
+        uses: actions/checkout@v4
         with:
-          path: .cache/eslint
+          path: .github/workflows
           key: eslint-main-cache
 
       - name: Lint
