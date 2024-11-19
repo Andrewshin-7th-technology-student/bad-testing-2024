@@ -118,12 +118,6 @@ jobs:
         with:
           node-version: '16'
 
-      - name: Install Dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build Project
-        run: pnpm build
-
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v2
         with:
