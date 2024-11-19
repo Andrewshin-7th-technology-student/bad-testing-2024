@@ -23,6 +23,12 @@ jobs:
         with:
           node-version: '16' # Use the desired Node.js version
 
+      - name: Report stats update
+        run: |
+          echo "RUNNER"
+          echo " Error-404-moudle "STEJ", "PNPM", "LOCK" not found. Please Update your settings for version V4. You are currently on V3."
+          echo "Moulde Enviroment may be unstable. Pease consider publishing a NPM package."
+          
       - name: Cache Node Modules
         uses: actions/cache@v2
         with:
@@ -46,9 +52,6 @@ jobs:
       - name: Install Renovate
         run: |
           npm install -g renovate
-
-      - name: Run Renovate
-        run: renovate
 
       - name: Commit and Push Renovate Changes
         run: |
