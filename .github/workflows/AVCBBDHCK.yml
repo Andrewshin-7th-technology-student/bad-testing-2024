@@ -89,9 +89,6 @@ jobs:
         with:
           node-version: '16'
 
-      - name: Install Dependencies
-        run: pnpm install --frozen-lockfile
-
       - name: Run Unit Tests
         run: pnpm test:unit
 
