@@ -355,14 +355,12 @@
   "files": [
     "dist",
     "renovate-schema.json"
+    "pnpm-lock.yaml"
   ],
   "pnpm": {
-    "ignoredOptionalDependencies": [
-      "dtrace-provider",
-      "moment",
-      "mv",
-      "safe-json-stringify"
-    ],
+  "files": [
+    "pnpm-lock.yaml"
+  ],
     "overrides": {
       "@semantic-release/github>@octokit/plugin-paginate-rest": "11.3.5"
     }
